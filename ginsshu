@@ -3,7 +3,7 @@
 #
 # $Title: Script to run an SSH command on all the chef nodes $
 # $Copyright: 2018-2020 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:53:32 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:54:25 -0700 freebsdfrau $
 #
 ############################################################ INCLUDES
 
@@ -20,6 +20,7 @@ my $KNIFE_CMD = "knife node list";
 
 #
 # Default maximum concurrent ssh(1) sessions
+# NB: When `-C num' not given and we are unable to count CPUs
 #
 my $CONCURRENCY = 1;
 
