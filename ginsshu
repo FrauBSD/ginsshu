@@ -3,7 +3,7 @@
 #
 # $Title: Script to run an SSH command on all the chef nodes $
 # $Copyright: 2018-2020 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:52:02 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:53:32 -0700 freebsdfrau $
 #
 ############################################################ INCLUDES
 
@@ -94,7 +94,7 @@ getopt("C:m:M:s:");
 #
 if ($opt_C ne "" && $opt_C > 1) {
 	$CONCURRENCY = $opt_C;
-} elsif ($nproc =~ /^\d$/ && $nproc > 0) {
+} elsif ($nproc =~ /^\d+$/ && $nproc > 0) {
 	$CONCURRENCY = $nproc;
 }
 
