@@ -3,7 +3,7 @@
 #
 # $Title: Script to run an SSH command on all the chef nodes $
 # $Copyright: 2018-2020 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:46:28 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:52:02 -0700 freebsdfrau $
 #
 ############################################################ INCLUDES
 
@@ -49,7 +49,7 @@ my $REMOTE_CMD;
 #
 our $opt_C = 0;		# -C num
 our $opt_m = undef;	# -m "node1 node2 ..."
-our $opt_M = "";	# -m node_list.txt
+our $opt_M = "";	# -M node_list.txt
 our $opt_s = undef;	# -s query
 
 ############################################################ FUNCTIONS
