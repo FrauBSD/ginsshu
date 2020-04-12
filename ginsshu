@@ -1,0 +1,125 @@
+#!/usr/bin/perl
+############################################################ IDENT(1)
+#
+# $Title: Script to run an SSH command on all the chef nodes $
+# $Copyright: 2018-2020 Devin Teske. All rights reserved. $
+# $FrauBSD: //github.com/FrauBSD/ginsshu/ginsshu 2020-04-12 12:46:28 -0700 freebsdfrau $
+#
+############################################################ INCLUDES
+
+use strict;
+use warnings;
+use Getopt::Std;
+
+############################################################ CONFIGURATION
+
+#
+# knife(1) command to list all nodes
+#
+my $KNIFE_CMD = "knife node list";
+
+#
+# Default maximum concurrent ssh(1) sessions
+#
+my $CONCURRENCY = 1;
+
+############################################################ GLOBALS
+
+(our $pgm = $0) =~ s#.*/##g;
+
+#
+# Disable output buffering
+# NB: Required when output is to-be collated by xargs(1)
+#
+$| = 1;
+
+#
+# Number of processors
+#
+our $nproc = `getconf @{[ $^O eq "freebsd" ? "" : "_" ]}NPROCESSORS_CONF`;
+chomp $nproc;
+
+#
+# Command-line arguments
+#
+my $REMOTE_CMD;
+
+#
+# Command-line options
+#
+our $opt_C = 0;		# -C num
+our $opt_m = undef;	# -m "node1 node2 ..."
+our $opt_M = "";	# -m node_list.txt
+our $opt_s = undef;	# -s query
+
+############################################################ FUNCTIONS
+
+sub usage
+{
+	my $optfmt = "\t%-10s %s\n";
+	my $exfmt = "\t%s\n";
+	printf STDERR "Usage: %s [OPTIONS] command args ...\n", $pgm;
+	printf STDERR "OPTIONS:\n";
+	printf STDERR $optfmt, "-C num",
+		"Concurrency limit (default $nproc).";
+	printf STDERR $optfmt, "-m list",
+		"Manual node list (space separated; overrides \`-M file').";
+	printf STDERR $optfmt, "-M file",
+		"Manual node file.";
+	printf STDERR $optfmt, "-s query",
+		"Query node list using \`knife search' (overrides -m/-M).";
+	printf STDERR "EXAMPLES:\n";
+	printf STDERR $exfmt, "$0 -m node1 hostname";
+	printf STDERR $exfmt, "$0 -m \"node1 node2 ...\" hostname";
+	printf STDERR $exfmt, "echo node1 node2 ... | $0 -M- hostname";
+	printf STDERR $exfmt, "$0 -s name:node1 hostname";
+	printf STDERR $exfmt, "$0 -s platform:freebsd hostname";
+	printf STDERR "NOTE: Unless -s/-m/-M, default is ssh to %s\n",
+		"each machine returned by ...";
+	printf STDERR "      \t%s\n", $KNIFE_CMD;
+	exit 1;
+}
+
+############################################################ MAIN
+
+#
+# Parse command-line options
+#
+getopt("C:m:M:s:");
+&usage() if $#ARGV < 0;
+(my $_opt_M = $opt_M) =~ s/'/'\\''/g;
+
+#
+# Optimize parallel concurrency
+#
+if ($opt_C ne "" && $opt_C > 1) {
+	$CONCURRENCY = $opt_C;
+} elsif ($nproc =~ /^\d$/ && $nproc > 0) {
+	$CONCURRENCY = $nproc;
+}
+
+#
+# ssh(1) to each node
+#
+$REMOTE_CMD = join " ", @ARGV;
+$ENV{PARALLEL_SH} = <<EOF;
+	ssh @{[ map { "-o$_" } qw(
+		BatchMode=yes
+		StrictHostKeyChecking=no
+		GlobalKnownHostsFile=/dev/null
+		UserKnownHostsFile=/dev/null
+	)]} "root@\$1" $REMOTE_CMD 2> /dev/null |
+		awk -v node="\$1" '\$0 = node "\\t" \$0'
+EOF
+system qq!xargs -n1 -P$CONCURRENCY sh -c "\$PARALLEL_SH" sh <<EOF
+@{[
+	defined $opt_s ? `knife search -i node -- $opt_s | awk 'NR>2'` :
+	defined $opt_m ? $opt_m :
+	$opt_M         ? `cat '$_opt_M'` :
+	                 `$KNIFE_CMD`
+]}
+EOF!;
+
+################################################################################
+# END
+################################################################################
